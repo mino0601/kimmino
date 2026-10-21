@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Face Tracking Studio</title>
+<style>
+:root{--bg:#090d18;--panel:#131b2e;--line:#2b3650;--text:#edf3ff;--muted:#9aa9c4;--cyan:#67e8f9;--green:#5cffad}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;color:var(--text);font-family:Segoe UI,Arial,sans-serif;background:radial-gradient(ellipse at 15% 0%,#4d60dc38,transparent 38%),radial-gradient(ellipse at 90% 15%,#00d2be20,transparent 32%),var(--bg)}
+.shell{max-width:1180px;margin:auto;padding:28px 20px 40px}header{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:24px}.brand{display:flex;align-items:center;gap:13px}.logo{width:46px;height:46px;display:grid;place-items:center;border-radius:14px;background:linear-gradient(135deg,#67e8f9,#818cf8);color:#09111f;font-size:25px;font-weight:900}h1{font-size:clamp(22px,3vw,31px);margin:0}.subtitle{color:var(--muted);margin-top:5px;font-size:13px}.live{display:flex;align-items:center;gap:8px;border:1px solid var(--line);padding:9px 12px;border-radius:99px;color:var(--muted);font-size:11px}.dot{width:8px;height:8px;border-radius:50%;background:#64748b}.live.on .dot{background:var(--green);box-shadow:0 0 12px var(--green)}
+.layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(270px,.8fr);gap:18px}.panel{background:#131b2eeb;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 20px 60px #0002}.panel-head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}.panel-head h2{font-size:14px;margin:0}.tag{color:var(--cyan);font-size:10px;letter-spacing:1.2px}.stage{position:relative;background:#030611;aspect-ratio:4/3;display:grid;place-items:center;overflow:hidden}video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:none}canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;color:var(--muted)}.camera-icon{width:64px;height:64px;border:1px solid #334155;border-radius:20px;display:grid;place-items:center;font-size:28px;margin-bottom:15px;background:#10182a}.placeholder strong{color:var(--text);font-size:16px;margin-bottom:8px}.placeholder span{font-size:12px;line-height:1.7;max-width:320px}.stage-footer{display:flex;justify-content:space-between;gap:12px;padding:12px 16px;color:var(--muted);font-size:10px;border-top:1px solid var(--line)}.controls{display:flex;gap:10px;padding:15px;flex-wrap:wrap}button{border:0;border-radius:11px;padding:12px 16px;font-weight:700;cursor:pointer;font-size:13px}button:disabled{opacity:.45;cursor:not-allowed}.primary{color:#07121b;background:linear-gradient(135deg,var(--cyan),#a5b4fc);flex:1}.secondary{background:#202b42;color:var(--text);border:1px solid var(--line)}.side{display:flex;flex-direction:column;gap:18px}.stats{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:11px}.stat{padding:14px;border:1px solid var(--line);border-radius:14px;background:#0d1425}.label{color:var(--muted);font-size:11px;margin-bottom:10px}.value{font-size:clamp(22px,3vw,29px);font-weight:750;letter-spacing:-1px;overflow-wrap:anywhere}.value small{font-size:11px;color:var(--muted);font-weight:500;letter-spacing:0}.accent{color:var(--cyan)}.green{color:var(--green)}.info{padding:17px}.coord-row{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:12px}.coord-row:last-child{border:0}.coord-row span{color:var(--muted)}.coord-row b{font-variant-numeric:tabular-nums;text-align:right}.status-line{padding:12px 13px;border-radius:11px;background:#0d1425;color:var(--muted);font-size:12px;line-height:1.7}.status-line strong{color:var(--text)}.note{margin-top:18px;color:#8290aa;font-size:11px;line-height:1.8;text-align:center}
+@media(max-width:800px){.layout{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}}@media(max-width:560px){.side{display:flex}.shell{padding:18px 12px}header{align-items:flex-start}.live{font-size:0}.live .dot{font-size:initial}}
+</style>
+</head>
+<body>
+<main class="shell">
+<header><div class="brand"><div class="logo">◎</div><div><h1>Face Tracking Studio</h1><div class="subtitle">실시간 얼굴 검출 · 좌표 모니터링</div></div></div><div class="live" id="badge"><span class="dot"></span><span id="liveText">SYSTEM STANDBY</span></div></header>
+<section class="layout">
+<div class="panel">
+<div class="panel-head"><h2>카메라 모니터</h2><span class="tag">CAM 01 / LIVE VIEW</span></div>
+<div class="stage"><video id="video" autoplay muted playsinline></video><canvas id="overlay"></canvas><div class="placeholder" id="placeholder"><div class="camera-icon">⌁</div><strong>카메라가 준비되지 않았습니다</strong><span>얼굴 인식 시작 버튼을 누르고 카메라 권한을 허용해 주세요.</span></div></div>
+<div class="stage-footer"><span id="resolution">VIDEO INPUT: OFFLINE</span><span>LOCAL PROCESSING</span></div>
+<div class="controls"><button class="primary" id="start">▶ 얼굴 인식 시작</button><button class="secondary" id="stop" disabled>■ 중지</button></div>
+</div>
+<aside class="side">
+<div class="panel"><div class="panel-head"><h2>실시간 분석</h2><span class="tag">TELEMETRY</span></div><div class="stats">
+<div class="stat"><div class="label">검출된 얼굴</div><div class="value green" id="count">0 <small>명</small></div></div>
+<div class="stat"><div class="label">처리 속도</div><div class="value accent" id="fps">— <small>FPS</small></div></div>
+<div class="stat"><div class="label">중심 X 좌표</div><div class="value" id="cx">—</div></div>
+<div class="stat"><div class="label">중심 Y 좌표</div><div class="value" id="cy">—</div></div>
+</div></div>
+<div class="panel"><div class="panel-head"><h2>좌표 정보</h2><span class="tag">POSITION</span></div><div class="info">
+<div class="coord-row"><span>얼굴 왼쪽 위 X</span><b id="bx">—</b></div><div class="coord-row"><span>얼굴 왼쪽 위 Y</span><b id="by">—</b></div><div class="coord-row"><span>얼굴 너비 × 높이</span><b id="size">—</b></div><div class="coord-row"><span>영상 크기</span><b id="resolution2">—</b></div>
+</div></div>
+<div class="panel"><div class="panel-head"><h2>시스템 상태</h2></div><div class="info"><div class="status-line" id="status"><strong>대기 중</strong><br>시작 버튼을 누르면 얼굴 검출이 시작됩니다.</div></div></div>
+</aside></section>
+<div class="note">좌표 원점은 영상 왼쪽 위 (0, 0)입니다. 카메라 영상은 이 페이지 안에서 처리됩니다.<br>카메라 권한은 localhost 또는 HTTPS 환경에서 허용됩니다. 첫 실행 시 모델을 인터넷에서 불러옵니다.</div>
+</main>
+<script type="module">
+import { FaceDetector, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+
+const video=document.querySelector("#video"), canvas=document.querySelector("#overlay"), ctx=canvas.getContext("2d");
+const startBtn=document.querySelector("#start"), stopBtn=document.querySelector("#stop"), placeholder=document.querySelector("#placeholder");
+const statusBox=document.querySelector("#status");
+let stream=null, detector=null, running=false, busy=false, lastStamp=0, smoothFps=0;
+
+function status(title,detail){statusBox.innerHTML=`<strong>${title}</strong><br>${detail}`;}
+function clearStats(){
+ document.querySelector("#count").innerHTML='0 <small>명</small>';document.querySelector("#fps").innerHTML='— <small>FPS</small>';
+ ["cx","cy","bx","by","size","resolution2"].forEach(id=>document.getElementById(id).textContent="—");
+}
+async function start(){
+ startBtn.disabled=true;
+ try{
+  status("AI 모델 준비 중","얼굴 검출 모델을 불러오고 있습니다. 첫 실행에는 잠시 걸릴 수 있습니다.");
+  if(!detector){
+   const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+   detector=await FaceDetector.createFromOptions(vision,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite",delegate:"GPU"},runningMode:"VIDEO",minDetectionConfidence:0.5});
+  }
+  if(!navigator.mediaDevices?.getUserMedia) throw new Error("카메라 API를 사용할 수 없습니다. HTML 파일을 VS Code Live Server 또는 localhost로 열어 주세요.");
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:false});
+  video.srcObject=stream;await video.play();
+  canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+  video.style.display="block";placeholder.style.display="none";running=true;
+  document.querySelector("#badge").classList.add("on");document.querySelector("#liveText").textContent="SYSTEM ONLINE";
+  document.querySelector("#resolution").textContent="VIDEO INPUT: ONLINE";
+  document.querySelector("#resolution2").textContent=`${video.videoWidth} × ${video.videoHeight}`;
+  startBtn.disabled=true;stopBtn.disabled=false;
+  status("시스템 실행 중","카메라를 정면으로 바라보면 얼굴 주변에 상자와 좌표가 표시됩니다.");
+  requestAnimationFrame(loop);
+ }catch(e){
+  console.error(e);startBtn.disabled=false;
+  let msg=e.message||"알 수 없는 오류";
+  if(e.name==="NotAllowedError")msg="카메라 권한이 차단되었습니다. 브라우저 주소창의 카메라 권한을 허용해 주세요.";
+  if(e.name==="NotFoundError")msg="카메라를 찾지 못했습니다. 웹캠 연결을 확인해 주세요.";
+  status("실행 실패",msg);
+ }
+}
+function loop(timestamp){
+ if(!running)return;
+ if(video.readyState<2){requestAnimationFrame(loop);return;}
+ if(!busy){
+  busy=true;
+  try{
+   const result=detector.detectForVideo(video,performance.now());
+   const detections=result.detections||[], w=video.videoWidth,h=video.videoHeight;
+   if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
+   ctx.clearRect(0,0,w,h);
+   ctx.save();ctx.translate(w,0);ctx.scale(-1,1);
+   ctx.lineWidth=Math.max(2,w/500);ctx.strokeStyle="#5cffad";ctx.fillStyle="#5cffad";
+   ctx.shadowColor="#5cffad";ctx.shadowBlur=8;ctx.font=`bold ${Math.max(16,w/42)}px Segoe UI,Arial`;
+   detections.forEach((d,i)=>{
+    const b=d.boundingBox;
+    if(!b)return;
+    ctx.strokeRect(b.originX,b.originY,b.width,b.height);
+    const x=Math.round(b.originX),y=Math.round(b.originY),cx=Math.round(b.originX+b.width/2),cy=Math.round(b.originY+b.height/2);
+    ctx.beginPath();ctx.arc(cx,cy,Math.max(4,w/180),0,Math.PI*2);ctx.fill();
+    ctx.fillText(`X:${cx} Y:${cy}`,x,Math.max(22,y-10));
+    if(i===0){document.querySelector("#cx").textContent=cx;document.querySelector("#cy").textContent=cy;document.querySelector("#bx").textContent=x;document.querySelector("#by").textContent=y;document.querySelector("#size").textContent=`${Math.round(b.width)} × ${Math.round(b.height)}`;}
+   });
+   ctx.restore();
+   document.querySelector("#count").innerHTML=`${detections.length} <small>명</small>`;
+   if(!detections.length){["cx","cy","bx","by","size"].forEach(id=>document.getElementById(id).textContent="—");status("얼굴 탐색 중","얼굴이 화면 안에 들어오도록 위치를 조정해 주세요.");}
+   else status("얼굴 검출 완료",`${detections.length}개의 얼굴을 찾았습니다. 좌표는 영상 픽셀 기준입니다.`);
+  }catch(e){console.error(e);status("검출 오류","모델 처리 중 오류가 발생했습니다. 페이지를 새로고침해 다시 시도해 주세요.");}
+  finally{busy=false;}
+ }
+ if(lastStamp){const f=1000/(timestamp-lastStamp);smoothFps=smoothFps?smoothFps*.8+f*.2:f;document.querySelector("#fps").innerHTML=`${Math.round(smoothFps)} <small>FPS</small>`;}
+ lastStamp=timestamp;requestAnimationFrame(loop);
+}
+function stop(){
+ running=false;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+ video.srcObject=null;video.style.display="none";placeholder.style.display="flex";
+ ctx.clearRect(0,0,canvas.width,canvas.height);startBtn.disabled=false;stopBtn.disabled=true;
+ document.querySelector("#badge").classList.remove("on");document.querySelector("#liveText").textContent="SYSTEM STANDBY";
+ document.querySelector("#resolution").textContent="VIDEO INPUT: OFFLINE";clearStats();status("대기 중","시작 버튼을 누르면 얼굴 검출이 시작됩니다.");
+}
+startBtn.addEventListener("click",start);stopBtn.addEventListener("click",stop);
+window.addEventListener("beforeunload",()=>{if(stream)stream.getTracks().forEach(t=>t.stop());});
+</script>
+</body>
+</html>
